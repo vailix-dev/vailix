@@ -1,0 +1,29 @@
+{
+  "name": "vailix",
+  "version": "0.1.0",
+  "description": "The future home of the Vailix project ecosystem.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "vailix",
+    "opensource"
+  ],
+  "author": "Gil Eyni <gil@vailix.dev>",
+  "license": "MIT",
+  "homepage": "https://github.com/vailix-dev/vailix#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vailix-dev/vailix.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vailix-dev/vailix/issues"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ]
+}
