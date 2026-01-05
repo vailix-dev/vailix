@@ -6,7 +6,7 @@ dist/
 *.tsbuildinfo
 
 # Packages (not ready for commit)
-packages/
+#packages/
 
 # Environment
 .env

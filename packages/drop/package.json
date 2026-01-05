@@ -1,0 +1,48 @@
+{
+    "name": "@vailix/drop",
+    "version": "0.1.0",
+    "description": "Secure backend for Vailix proximity tracing",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vailix/core.git",
+        "directory": "packages/drop"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "start": "node dist/index.js",
+        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "test": "vitest run",
+        "lint": "eslint src/"
+    },
+    "dependencies": {
+        "fastify": "^5.6.2",
+        "fastify-plugin": "^4.5.0",
+        "@fastify/helmet": "^13.0.0",
+        "@fastify/rate-limit": "^10.0.0",
+        "@fastify/compress": "^8.0.0",
+        "@fastify/cors": "^10.0.0",
+        "@sinclair/typebox": "^0.32.0",
+        "mongoose": "^9.0.0",
+        "dotenv": "^17.2.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.7.0",
+        "tsx": "^4.21.0",
+        "tsup": "^8.5.0",
+        "@types/node": "^22.0.0"
+    }
+}

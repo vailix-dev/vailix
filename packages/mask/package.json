@@ -1,0 +1,47 @@
+{
+    "name": "@vailix/mask",
+    "version": "0.1.0",
+    "description": "Privacy-preserving proximity tracing SDK for React Native & Expo",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vailix/core.git",
+        "directory": "packages/mask"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "test": "vitest run",
+        "lint": "eslint src/"
+    },
+    "peerDependencies": {
+        "expo": "~52.0.0",
+        "react-native": ">=0.76.0"
+    },
+    "dependencies": {
+        "react-native-quick-crypto": "^1.0.6",
+        "expo-secure-store": "~15.0.8",
+        "expo-sqlite": "~16.0.10",
+        "drizzle-orm": "^0.45.1",
+        "@react-native-async-storage/async-storage": "^1.21.0",
+        "eventemitter3": "^5.0.0",
+        "react-native-nfc-manager": "^3.14.0"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.30.0",
+        "typescript": "^5.7.0",
+        "tsup": "^8.0.0"
+    }
+}

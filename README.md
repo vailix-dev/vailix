@@ -138,6 +138,45 @@ VailixSDK.create({
 - [SDK Documentation](./packages/mask/README.md)
 - [Server Documentation](./packages/drop/README.md)
 
+## Installation
+
+**Mobile SDK (@vailix/mask)**
+```bash
+npm install @vailix/mask
+# or
+pnpm add @vailix/mask
+```
+
+**Server (@vailix/drop)**
+```bash
+npm install @vailix/drop
+# or
+pnpm add @vailix/drop
+```
+
+## Compatibility
+
+| @vailix/mask | @vailix/drop | Notes |
+|------------|------------|-------|
+| v0.1.x     | v0.1.x     | Initial Release |
+
+### Peer Dependencies
+
+The Mobile SDK requires:
+- `react-native` >= 0.76.0
+- `expo` ~52.0.0 (if using Expo)
+
+> [!CAUTION]
+> **Expo Prebuild Required**: `react-native-quick-crypto` contains native code and will NOT work with Expo Go. You must use Expo Development Builds.
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+## Security
+
+For security issues, please see [SECURITY.md](./SECURITY.md).
+
 ## License
 
 MIT
