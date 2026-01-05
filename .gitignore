@@ -1,37 +1,45 @@
-# --- Security & Secrets ---
-# Crucial: This protects the token we discussed for your Vailix npm account
-.npmrc
-.env
-*.pem
-*.key
-
-# --- Dependency Folders ---
-# Never upload these; they are re-downloaded via 'npm install'
+# Dependencies
 node_modules/
-jspm_packages/
 
-# --- Build & Distribution ---
-# If you eventually use TypeScript or a bundler, ignore the output
+# Build outputs
 dist/
-build/
-out/
 *.tsbuildinfo
 
-# --- Logs & Debugging ---
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs/
-*.log
+# Packages (not ready for commit)
+packages/
 
-# --- System Files ---
-# Mac/Windows hidden files that clutter the repo
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
 
-# --- Testing ---
-# Coverage reports from tools like Jest
+# Expo
+.expo/
+ios/
+android/
+
+# Test coverage
 coverage/
-.nyc_output/
+
+# Logs
+*.log
+pnpm-debug.log*
+npm-debug.log*
+
+# Turbo
+.turbo/
+
+# pnpm
+.pnpm-store/
+
+# Internal docs
+core_framework_plan.md
+security_model.md
+visto_app_plan.md

@@ -1,29 +1,53 @@
 {
-  "name": "vailix",
-  "version": "0.1.0",
-  "description": "The future home of the Vailix project ecosystem.",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "vailix",
-    "opensource"
-  ],
-  "author": "Gil Eyni <gil@vailix.dev>",
-  "license": "MIT",
-  "homepage": "https://github.com/vailix-dev/vailix#readme",
+  "name": "vailix-monorepo",
+  "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vailix-dev/vailix.git"
+    "url": "git+https://github.com/vailix/core.git"
   },
-  "bugs": {
-    "url": "https://github.com/vailix-dev/vailix/issues"
+  "author": "Vailix Open Source",
+  "license": "MIT",
+  "scripts": {
+    "dev:drop": "pnpm --filter @vailix/drop dev",
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yml}\"",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "publish-packages": "changeset publish",
+    "prepare": "husky",
+    "clean": "pnpm -r exec rm -rf dist node_modules coverage"
   },
-  "files": [
-    "index.js",
-    "README.md",
-    "LICENSE"
-  ]
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "tsup": "^8.5.0",
+    "@changesets/cli": "^2.29.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.39.0",
+    "typescript-eslint": "^8.52.0",
+    "prettier": "^3.7.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^16.2.0",
+    "vitest": "^4.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "globals": "^16.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
 }
