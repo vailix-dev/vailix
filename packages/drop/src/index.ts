@@ -14,7 +14,7 @@ import { attestVerifier } from './attest';
 export interface VailixOptions {
     mongoUri: string;
     secret: string;
-    attestVerifier?: (token: string) => Promise<boolean>;
+    attestVerifier?: (token: string | undefined) => Promise<boolean>;
 }
 
 // 1. THE PLUGIN (Embeddable)
@@ -37,7 +37,13 @@ const vailixPlugin: FastifyPluginAsync<VailixOptions> = async (fastify, options)
 
     // Auth Hook
     fastify.addHook('preHandler', async (req, reply) => {
-        if (req.url.endsWith('/health')) return;
+        // Use routeOptions.url for exact route matching (ignores query strings)
+        const routePath = req.routeOptions.url;
+
+        // Skip auth for /health endpoints registered within the plugin scope.
+        // Note: In standalone mode, /health is outside plugin scope so this doesn't apply.
+        // This check exists for embedders who register their own /health inside the plugin.
+        if (routePath === '/health') return;
 
         const provided = req.headers['x-vailix-secret'] as string;
         const expected = options.secret;
@@ -51,7 +57,8 @@ const vailixPlugin: FastifyPluginAsync<VailixOptions> = async (fastify, options)
             return reply.code(401).send({ error: 'Unauthorized' });
         }
 
-        if (req.url.endsWith('/report') && req.method === 'POST' && options.attestVerifier) {
+        // Attestation check for report endpoint
+        if (routePath === '/v1/report' && req.method === 'POST' && options.attestVerifier) {
             const token = req.headers['x-attest-token'] as string;
             if (!(await options.attestVerifier(token))) {
                 return reply.code(403).send({ error: 'Attestation failed' });

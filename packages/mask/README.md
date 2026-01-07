@@ -59,6 +59,9 @@ await sdk.matcher.fetchAndMatch();
 | `rescanIntervalMs` | number | 0 | Minimum time between scans of same RPI. 0 = no limit |
 | `reportDays` | number | 14 | Days of history to upload when reporting |
 | `keyStorage` | KeyStorage | SecureStore | Custom key storage adapter (for cloud backup) |
+| `bleDiscoveryTimeoutMs` | number | 15000 | Timeout before removing user from nearby list |
+| `proximityThreshold` | number | -70 | Minimum RSSI to consider a user "nearby" |
+| `autoAcceptIncomingPairs` | boolean | true | Auto-accept incoming pair requests |
 
 ### Example Configuration
 
@@ -70,6 +73,9 @@ const sdk = await VailixSDK.create({
   rpiDurationMs: 24 * 60 * 60 * 1000,    // 24 hours
   rescanIntervalMs: 24 * 60 * 60 * 1000, // Block rescan for 24h
   reportDays: 14,
+  bleDiscoveryTimeoutMs: 15000,          // 15 seconds
+  proximityThreshold: -70,               // ~1-2 meters
+  autoAcceptIncomingPairs: true,         // Instant mutual exchange
 });
 ```
 
@@ -77,18 +83,60 @@ const sdk = await VailixSDK.create({
 
 Both methods result in **mutual notification** — if either user reports positive, the other is notified.
 
-### NFC Pairing (Recommended)
+### BLE Pairing (Recommended)
 
-Single tap to exchange identities:
+One-tap proximity-based pairing via Bluetooth Low Energy:
 
 ```typescript
-if (await VailixSDK.isNfcSupported()) {
-  const result = await sdk.pairViaNfc();
-  if (result.success) {
-    console.log('Paired successfully');
-  }
+import { useState, useEffect } from 'react';
+import { NearbyUser } from '@vailix/mask';
+
+function PairingScreen({ sdk }) {
+  const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
+
+  useEffect(() => {
+    // Start discovery when screen opens
+    sdk.startDiscovery();
+
+    // Subscribe to nearby user updates
+    const cleanup = sdk.onNearbyUsersChanged(setNearbyUsers);
+
+    return () => {
+      cleanup();
+      sdk.stopDiscovery();
+    };
+  }, []);
+
+  const handlePair = async (user: NearbyUser) => {
+    const result = await sdk.pairWithUser(user.id);
+    if (result.success) {
+      console.log('Paired successfully with', user.displayName);
+    }
+  };
+
+  return (
+    <FlatList
+      data={nearbyUsers}
+      renderItem={({ item }) => (
+        <View>
+          <Text>{item.displayName}</Text>
+          {item.paired ? (
+            <Text>✓ Paired</Text>
+          ) : (
+            <Button title="Pair" onPress={() => handlePair(item)} />
+          )}
+        </View>
+      )}
+    />
+  );
 }
 ```
+
+**User Flow:**
+1. Both users open the pairing screen
+2. They see each other in the nearby users list (e.g., "🐼 42", "🦊 17")
+3. Either user taps to pair
+4. Both phones exchange data automatically
 
 ### QR Code Pairing (Fallback)
 
@@ -103,6 +151,50 @@ const qrData = sdk.getQRCode();
 const success = await sdk.scanQR(scannedData);
 
 // Then swap: B shows, A scans
+```
+
+## BLE Configuration
+
+### iOS Configuration
+
+Add to `ios/[AppName]/Info.plist`:
+
+```xml
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>Used to discover and pair with nearby users</string>
+<key>NSBluetoothPeripheralUsageDescription</key>
+<string>Used to allow other users to discover you</string>
+```
+
+### Android Configuration
+
+Add to `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+```
+
+## Explicit Consent Mode
+
+By default, pair requests are auto-accepted. For apps requiring explicit consent:
+
+```typescript
+const sdk = await VailixSDK.create({
+  ...config,
+  autoAcceptIncomingPairs: false, // Require explicit acceptance
+});
+
+// In your pairing screen:
+{item.hasIncomingRequest ? (
+  <Button title="Accept" onPress={() => sdk.pairWithUser(item.id)} />
+) : item.paired ? (
+  <Text>✓ Paired</Text>
+) : (
+  <Button title="Pair" onPress={() => handlePair(item)} />
+)}
 ```
 
 ## Reporting Positive
@@ -216,17 +308,46 @@ interface KeyStorage {
 
 | Method | Description |
 |--------|-------------|
-| `VailixSDK.create(config)` | Initialize SDK |
-| `VailixSDK.isNfcSupported()` | Check if device supports NFC |
+| `VailixSDK.create(config)` | Initialize SDK with VailixConfig |
+| `VailixSDK.isBleSupported()` | Check if device supports BLE |
 | `sdk.getQRCode()` | Get QR code data for display |
 | `sdk.scanQR(data)` | Scan and store another user's QR |
-| `sdk.pairViaNfc()` | Pair via NFC tap |
+| `sdk.startDiscovery()` | Start BLE discovery (call when pairing screen opens) |
+| `sdk.stopDiscovery()` | Stop BLE discovery (call when leaving pairing screen) |
+| `sdk.getNearbyUsers()` | Get current list of nearby users |
+| `sdk.onNearbyUsersChanged(handler)` | Subscribe to nearby user updates |
+| `sdk.pairWithUser(userId)` | Pair with a specific user |
+| `sdk.unpairUser(userId)` | Unpair/reject a user |
 | `sdk.report(token?, metadata?)` | Report positive |
 | `sdk.onMatch(handler)` | Subscribe to exposure matches |
 | `sdk.offMatch(handler)` | Unsubscribe from matches |
 | `sdk.onError(handler)` | Subscribe to errors |
 | `sdk.offError(handler)` | Unsubscribe from errors |
 | `sdk.matcher.fetchAndMatch()` | Sync and check for matches |
+
+### NearbyUser Object
+
+```typescript
+interface NearbyUser {
+  id: string;              // Opaque identifier for pairing
+  displayName: string;     // Generated emoji + number (e.g., "🐼 42")
+  rssi: number;            // Signal strength
+  discoveredAt: number;    // Timestamp of last advertisement
+  paired: boolean;         // true if already paired
+  hasIncomingRequest: boolean; // true if they sent a pair request (explicit mode)
+}
+```
+
+### PairResult Object
+
+```typescript
+interface PairResult {
+  success: boolean;
+  partnerRpi?: string;
+  partnerMetadataKey?: string;
+  error?: string;
+}
+```
 
 ### Match Object
 

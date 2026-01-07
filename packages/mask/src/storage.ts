@@ -13,6 +13,9 @@ export const scannedEvents = sqliteTable('scanned_events', {
     timestamp: integer('timestamp').notNull(),
 }, (t) => [index('rpi_idx').on(t.rpi)]);
 
+/** Type for a scanned event row */
+export type ScannedEvent = typeof scannedEvents.$inferSelect;
+
 export class StorageService {
     private rescanIntervalMs: number;
     private lastScanByRpi = new Map<string, number>();
@@ -78,13 +81,13 @@ export class StorageService {
 
     // Get only scans matching the given RPIs (efficient DB-level filtering)
     // Batches queries to respect SQLite variable limits
-    async getMatchingScans(rpiList: string[]): Promise<any[]> {
+    async getMatchingScans(rpiList: string[]): Promise<ScannedEvent[]> {
         if (rpiList.length === 0) return [];
 
         // SQLite limit is often 999 or 32766 variables. 
         // We stick to a safe 500 batch size to be conservative across devices.
         const BATCH_SIZE = 500;
-        const results: any[] = [];
+        const results: ScannedEvent[] = [];
 
         for (let i = 0; i < rpiList.length; i += BATCH_SIZE) {
             const batch = rpiList.slice(i, i + BATCH_SIZE);

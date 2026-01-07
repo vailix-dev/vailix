@@ -84,9 +84,9 @@ function serializeKeys(keys: any[]): Buffer {
     offset += 4;
 
     for (const k of keys) {
-        // RPI: stored as Buffer in DB, so copy directly
-        // Ensure it's a buffer (safety check)
-        const rpiBuf = k.rpi instanceof Buffer ? k.rpi : Buffer.from(k.rpi, 'hex');
+        // RPI: Mongoose .lean() returns BSON Binary objects, not Node Buffers
+        // Binary objects have a .buffer property containing the raw data
+        const rpiBuf = Buffer.from((k.rpi as any).buffer || k.rpi);
         rpiBuf.copy(buffer, offset, 0, 16);
         offset += 16;
 

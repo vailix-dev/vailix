@@ -2,51 +2,55 @@ import { createCipheriv, randomBytes } from 'react-native-quick-crypto';
 import { IdentityManager } from './identity';
 import { StorageService } from './storage';
 import { MatcherService } from './matcher';
-import { NfcService } from './nfc';
+import { BleService } from './ble';
 import { formatQR, parseQR } from './transport';
 import { initializeDatabase } from './db';
-import type { Match, MatchHandler, ReportMetadata, KeyStorage } from './types';
+import type { 
+    Match, 
+    MatchHandler, 
+    ReportMetadata, 
+    KeyStorage, 
+    VailixConfig,
+    NearbyUser,
+    PairResult 
+} from './types';
 
 export class VailixSDK {
     public identity: IdentityManager;
     public storage: StorageService;
     public matcher: MatcherService;
+    private ble: BleService;
     private reportUrl: string;
     private appSecret: string;
     private reportDays: number;
+    private rpiDurationMs: number;
 
     private constructor(
         identity: IdentityManager,
         storage: StorageService,
         matcher: MatcherService,
+        ble: BleService,
         reportUrl: string,
         appSecret: string,
-        reportDays: number
+        reportDays: number,
+        rpiDurationMs: number
     ) {
         this.identity = identity;
         this.storage = storage;
         this.matcher = matcher;
+        this.ble = ble;
         this.reportUrl = reportUrl;
         this.appSecret = appSecret;
         this.reportDays = reportDays;
+        this.rpiDurationMs = rpiDurationMs;
     }
 
     /**
-     * @param config.reportUrl The live API endpoint for submitting reports
-     * @param config.downloadUrl The endpoint for downloading keys (can be the same as reportUrl or a CDN)
-     * @param config.rpiDurationMs How long RPI persists (default: 15min, can be 24h for STD apps)
-     * @param config.rescanIntervalMs Minimum time between scans of same RPI (default: 0 = no limit)
-     * @param config.keyStorage Custom key storage adapter (default: expo-secure-store)
+     * Create and initialize the VailixSDK.
+     * 
+     * @param config - Unified configuration object
      */
-    static async create(config: {
-        reportUrl: string;
-        downloadUrl: string;
-        appSecret: string;
-        rpiDurationMs?: number;
-        rescanIntervalMs?: number;
-        reportDays?: number;
-        keyStorage?: KeyStorage;
-    }): Promise<VailixSDK> {
+    static async create(config: VailixConfig): Promise<VailixSDK> {
         // Validate: rescanInterval cannot exceed rpiDuration
         const rpiDuration = config.rpiDurationMs ?? 15 * 60 * 1000; // Default 15 min
         if (config.rescanIntervalMs && config.rescanIntervalMs > rpiDuration) {
@@ -71,29 +75,51 @@ export class VailixSDK {
 
         const matcher = new MatcherService(storage, config.downloadUrl, config.appSecret);
 
+        // Initialize BLE service with config options
+        const ble = new BleService({
+            discoveryTimeoutMs: config.bleDiscoveryTimeoutMs,
+            proximityThreshold: config.proximityThreshold,
+            autoAccept: config.autoAcceptIncomingPairs,
+        });
+        ble.setStorage(storage);
+
         // Cleanup old scans on init
         await storage.cleanupOldScans();
 
-        return new VailixSDK(identity, storage, matcher, config.reportUrl, config.appSecret, config.reportDays ?? 14);
+        return new VailixSDK(
+            identity, 
+            storage, 
+            matcher, 
+            ble,
+            config.reportUrl, 
+            config.appSecret, 
+            config.reportDays ?? 14, 
+            rpiDuration
+        );
     }
 
-    // Get current QR code data
+    // ========================================================================
+    // QR Code Methods
+    // ========================================================================
+
+    /** Get current QR code data */
     getQRCode(): string {
         const rpi = this.identity.getCurrentRPI();
         const metaKey = this.identity.getMetadataKey(rpi);
         return formatQR(rpi, metaKey);
     }
 
-    // Scan another user's QR code and log it
-    // Returns false if: QR invalid, expired (>RPI duration), rescan blocked, or error
+    /**
+     * Scan another user's QR code and log it.
+     * Returns false if: QR invalid, expired (>RPI duration), rescan blocked, or error
+     */
     async scanQR(qrData: string): Promise<boolean> {
         try {
             const parsed = parseQR(qrData);
             if (!parsed) return false;
 
-            // SECURITY: Reject QR codes older than 15 minutes to prevent replay attacks
-            const MAX_QR_AGE_MS = 15 * 60 * 1000;
-            if (Date.now() - parsed.timestamp > MAX_QR_AGE_MS) {
+            // Reject QR codes older than RPI duration (QR is only valid while RPI is valid)
+            if (Date.now() - parsed.timestamp > this.rpiDurationMs) {
                 return false; // Expired QR
             }
 
@@ -110,48 +136,85 @@ export class VailixSDK {
         }
     }
 
-    // NFC Support: Check if device supports NFC
-    static async isNfcSupported(): Promise<boolean> {
-        return NfcService.isSupported();
+    // ========================================================================
+    // BLE Discovery & Pairing Methods
+    // ========================================================================
+
+    /**
+     * Check if BLE is supported on this device.
+     */
+    static async isBleSupported(): Promise<boolean> {
+        return BleService.isSupported();
     }
 
-    // NFC Pairing: Bidirectional exchange via NFC tap
-    // Both devices store each other's RPI for mutual notification
-    async pairViaNfc(): Promise<{ success: boolean; partnerRpi?: string }> {
-        try {
-            const nfc = new NfcService();
-            const supported = await nfc.initialize();
-            if (!supported) {
-                return { success: false };
-            }
-
-            const myRpi = this.identity.getCurrentRPI();
-            const myMetaKey = this.identity.getMetadataKey(myRpi);
-
-            const result = await nfc.pair(myRpi, myMetaKey);
-            nfc.cleanup();
-
-            if (result.success && result.partnerRpi && result.partnerMetadataKey) {
-                // Check rescan protection (consistent with scanQR behavior)
-                if (!this.storage.canScan(result.partnerRpi)) {
-                    return { success: false }; // Already paired recently
-                }
-
-                // Store partner's RPI locally
-                await this.storage.logScan(result.partnerRpi, result.partnerMetadataKey, Date.now());
-                return { success: true, partnerRpi: result.partnerRpi };
-            }
-
-            return { success: false };
-        } catch (error) {
-            this.matcher.emit('error', error);
-            return { success: false };
-        }
+    /**
+     * Start BLE discovery (call when pairing screen opens).
+     * Begins advertising our RPI and scanning for nearby users.
+     */
+    async startDiscovery(): Promise<void> {
+        const rpi = this.identity.getCurrentRPI();
+        const metaKey = this.identity.getMetadataKey(rpi);
+        await this.ble.startDiscovery(rpi, metaKey);
     }
 
-    // Report positive (upload configured days of history)
-    // attestToken: optional attestation token (e.g., Firebase App Check)
-    // metadata: app-specific data (e.g., STD type, test date). If null, a generic positive is reported.
+    /**
+     * Stop BLE discovery (call when leaving pairing screen).
+     */
+    async stopDiscovery(): Promise<void> {
+        await this.ble.stopDiscovery();
+    }
+
+    /**
+     * Get current list of nearby users.
+     */
+    getNearbyUsers(): NearbyUser[] {
+        return this.ble.getNearbyUsers();
+    }
+
+    /**
+     * Subscribe to nearby user updates.
+     * Returns cleanup function for React useEffect compatibility.
+     * 
+     * @example
+     * useEffect(() => {
+     *   const cleanup = sdk.onNearbyUsersChanged(setNearbyUsers);
+     *   return cleanup;
+     * }, []);
+     */
+    onNearbyUsersChanged(callback: (users: NearbyUser[]) => void): () => void {
+        return this.ble.onNearbyUsersChanged(callback);
+    }
+
+    /**
+     * Pair with a specific user (one-tap action).
+     * In explicit consent mode, this also accepts pending incoming requests.
+     * 
+     * @param userId - The user's ID from NearbyUser.id
+     */
+    async pairWithUser(userId: string): Promise<PairResult> {
+        return this.ble.pairWithUser(userId);
+    }
+
+    /**
+     * Unpair with a user (removes from storage and resets status).
+     * Useful for "undo" functionality or rejecting requests.
+     * 
+     * @param userId - The user's ID from NearbyUser.id
+     */
+    async unpairUser(userId: string): Promise<void> {
+        return this.ble.unpairUser(userId);
+    }
+
+    // ========================================================================
+    // Reporting Methods
+    // ========================================================================
+
+    /**
+     * Report positive (upload configured days of history).
+     * 
+     * @param attestToken - Optional attestation token (e.g., Firebase App Check)
+     * @param metadata - App-specific data (e.g., STD type, test date). If null, a generic positive is reported.
+     */
     async report(
         attestToken?: string,
         metadata?: ReportMetadata
@@ -184,7 +247,10 @@ export class VailixSDK {
         }
     }
 
+    // ========================================================================
     // Encryption Helpers
+    // ========================================================================
+
     // Max metadata size: 8KB (leaves headroom under 64KB binary format limit)
     private static readonly MAX_METADATA_SIZE = 8 * 1024;
 
@@ -208,28 +274,47 @@ export class VailixSDK {
         return `${iv.toString('base64')}:${authTag}:${encrypted}`;
     }
 
+    // ========================================================================
+    // Event Handlers
+    // ========================================================================
 
-
-    // Event handlers - return cleanup function for React useEffect compatibility
+    /**
+     * Subscribe to match events.
+     * Returns cleanup function for React useEffect compatibility.
+     */
     onMatch(handler: MatchHandler): () => void {
         this.matcher.on('match', handler);
         return () => this.matcher.off('match', handler);
     }
 
+    /**
+     * Subscribe to error events.
+     * Returns cleanup function for React useEffect compatibility.
+     */
     onError(handler: (error: Error) => void): () => void {
         this.matcher.on('error', handler);
         return () => this.matcher.off('error', handler);
     }
 
-    // Explicit cleanup methods (alternative API)
+    /** Explicit cleanup for match handler */
     offMatch(handler: MatchHandler): void {
         this.matcher.off('match', handler);
     }
 
+    /** Explicit cleanup for error handler */
     offError(handler: (error: Error) => void): void {
         this.matcher.off('error', handler);
     }
 }
 
+// Re-exports
 export { formatQR, parseQR };
-export type { Match, MatchHandler, ReportMetadata, KeyStorage };
+export type { 
+    Match, 
+    MatchHandler, 
+    ReportMetadata, 
+    KeyStorage, 
+    VailixConfig,
+    NearbyUser,
+    PairResult 
+};

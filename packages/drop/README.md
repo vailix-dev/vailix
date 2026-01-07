@@ -37,6 +37,10 @@ await app.register(vailixPlugin, {
   prefix: '/vailix', // Optional: mount under prefix
 });
 
+// Note: The plugin does NOT register a /health endpoint.
+// Embedders must add their own health check as needed:
+app.get('/health', async () => ({ status: 'ok' }));
+
 await app.listen({ port: 3000 });
 ```
 
@@ -109,6 +113,8 @@ Download reported keys for matching.
 - `cursor`: Pagination cursor for large result sets
 - `format`: `json` or `bin` (binary format for efficiency)
 
+> **Note:** When both `since` and `cursor` are provided, they are applied together (AND logic). The cursor continues pagination within the time boundary set by `since`.
+
 **Response (JSON):**
 ```json
 {
@@ -123,8 +129,10 @@ Download reported keys for matching.
 }
 ```
 
+When no more results are available, `nextCursor` is `null`.
+
 **Response (Binary):**
-- Header: `x-vailix-next-cursor` for pagination
+- Header: `x-vailix-next-cursor` for pagination (empty string when no more results)
 - Body: Compact binary format (16 bytes RPI + 8 bytes timestamp + variable metadata)
 
 ## Security Features
@@ -146,7 +154,7 @@ When enabled, requests without valid attestation tokens are rejected.
 ### Request Validation
 
 All inputs are validated using TypeBox schemas:
-- RPI must be 32 hex characters
+- RPI must be exactly 32 **lowercase** hex characters (`a-f0-9` only, uppercase rejected)
 - Metadata max size: 10KB
 - Required headers enforced
 

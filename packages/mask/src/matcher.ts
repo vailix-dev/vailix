@@ -112,6 +112,12 @@ export class MatcherService extends EventEmitter {
         offset += 4;
 
         for (let i = 0; i < count; i++) {
+            // Bounds check: minimum key size is 16 (RPI) + 8 (timestamp) + 2 (metaLen) = 26 bytes
+            if (offset + 26 > buffer.byteLength) {
+                console.warn(`Binary response truncated at key ${i}/${count}`);
+                break;
+            }
+
             // RPI: 16 bytes (Bin) -> 32 hex chars
             const rpiBytes = new Uint8Array(buffer, offset, 16);
             const rpi = Array.from(rpiBytes).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -127,10 +133,14 @@ export class MatcherService extends EventEmitter {
 
             let metadata: string | undefined = undefined;
             if (metaLen > 0) {
-                // Assume TextDecoder is available (Hermes/Browser)
-                // Polyfill if needed in older RN
+                // Bounds check for metadata
+                if (offset + metaLen > buffer.byteLength) {
+                    console.warn(`Binary response truncated during metadata at key ${i}/${count}`);
+                    break;
+                }
                 const metaBytes = new Uint8Array(buffer, offset, metaLen);
-                metadata = String.fromCharCode(...metaBytes); // Simple ASCII/UTF8 safe-ish fallback if no TextDecoder
+                // TextDecoder correctly handles multi-byte UTF-8 (available in Hermes)
+                metadata = new TextDecoder('utf-8').decode(metaBytes);
                 offset += metaLen;
             }
 

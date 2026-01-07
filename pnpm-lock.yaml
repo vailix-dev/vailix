@@ -111,9 +111,9 @@ importers:
       react-native:
         specifier: '>=0.76.0'
         version: 0.83.1(@babel/core@7.28.5)(react@19.2.3)
-      react-native-nfc-manager:
-        specifier: ^3.14.0
-        version: 3.17.2(@expo/config-plugins@9.0.17)
+      react-native-ble-plx:
+        specifier: ^3.2.1
+        version: 3.5.0(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3)
       react-native-quick-crypto:
         specifier: ^1.0.6
         version: 1.0.6(expo@52.0.48(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3))(react-native-nitro-modules@0.32.0(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3))(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3)
@@ -1400,7 +1400,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.27':
     resolution: {integrity: sha512-MZ3s68+OFQZWljAiCdwL+dL+xZudpkmhq0A2Qb4+p6MNp386WJyAYineXtiLJVww/8ohIfUxOL10vnaPdDVl4w==}
@@ -4416,13 +4416,12 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
-  react-native-nfc-manager@3.17.2:
-    resolution: {integrity: sha512-0NryP/Iw2hzw4MVH5KCngoRerNUrnRok6VfLrlFcFZRKyTQ7KTgpsdDxCB6cR33qYNyEDrWGBayfAI+ym5gt8Q==}
+  react-native-ble-plx@3.5.0:
+    resolution: {integrity: sha512-PeSnRswHLwLRVMQkOfDaRICtrGmo94WGKhlSC09XmHlqX2EuYgH+vNJpGcLkd8lyiYpEJyf8wlFAdj9Akliwmw==}
+    engines: {node: '>= 18.0.0'}
     peerDependencies:
-      '@expo/config-plugins': '*'
-    peerDependenciesMeta:
-      '@expo/config-plugins':
-        optional: true
+      react: '*'
+      react-native: '*'
 
   react-native-nitro-modules@0.32.0:
     resolution: {integrity: sha512-nLDsmi/H9/cLcYxArYxcTDL641JiWnAH3u2LmsFETgyqSEHvukswDTdmX6AHBRIAwXu/iUDppZyjsaRpTG6WMg==}
@@ -10217,9 +10216,10 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-native-nfc-manager@3.17.2(@expo/config-plugins@9.0.17):
-    optionalDependencies:
-      '@expo/config-plugins': 9.0.17
+  react-native-ble-plx@3.5.0(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-native: 0.83.1(@babel/core@7.28.5)(react@19.2.3)
 
   react-native-nitro-modules@0.32.0(react-native@0.83.1(@babel/core@7.28.5)(react@19.2.3))(react@19.2.3):
     dependencies:
