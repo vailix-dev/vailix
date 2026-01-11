@@ -14,6 +14,7 @@ import { attestVerifier } from './attest';
 export interface VailixOptions {
     mongoUri: string;
     secret: string;
+    retentionDays?: number;  // TTL in days (default: 14)
     attestVerifier?: (token: string | undefined) => Promise<boolean>;
 }
 
@@ -66,7 +67,11 @@ const vailixPlugin: FastifyPluginAsync<VailixOptions> = async (fastify, options)
         }
     });
 
-    registerRoutes(fastify);
+    // Create model with configurable TTL
+    const { createKeyModel } = await import('./db.js');
+    const KeyModel = createKeyModel(options.retentionDays ?? 14);
+
+    registerRoutes(fastify, KeyModel);
 };
 
 export default fp(vailixPlugin, { name: '@vailix/drop' });
@@ -84,9 +89,22 @@ export async function startStandalone() {
         process.exit(1);
     }
 
+    // Read retention from env var, default to 14 days
+    const retentionDays = process.env.VAILIX_RETENTION_DAYS
+        ? parseInt(process.env.VAILIX_RETENTION_DAYS, 10)
+        : 14;
+
+    // Optional: Load Firebase Attestation
+    let attestVerifier;
+    if (process.env.ATTEST_PROVIDER === 'firebase') {
+        const { firebaseAttestVerifier } = await import('./attest-firebase.js');
+        attestVerifier = firebaseAttestVerifier;
+    }
+
     server.register(vailixPlugin, {
         mongoUri: process.env.MONGODB_URI,
         secret: process.env.APP_SECRET,
+        retentionDays: retentionDays,
         attestVerifier,
     });
 

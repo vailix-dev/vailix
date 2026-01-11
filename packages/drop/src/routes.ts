@@ -1,15 +1,16 @@
 import { Type } from '@sinclair/typebox';
-import { KeyModel } from './db';
 import type { FastifyInstance } from 'fastify';
 
 const ReportSchema = Type.Object({
     reports: Type.Array(Type.Object({
         rpi: Type.String({ minLength: 32, maxLength: 32, pattern: '^[a-f0-9]{32}$' }),
-        encryptedMetadata: Type.String({ maxLength: 10240 }) // 10KB max, defense-in-depth
+        encryptedMetadata: Type.String({ maxLength: 10240 }) // 10K
+
+B max, defense-in -depth
     }), { maxItems: 1500 })
 });
 
-export function registerRoutes(server: FastifyInstance) {
+export function registerRoutes(server: FastifyInstance, KeyModel: any) {
     server.post('/v1/report', { schema: { body: ReportSchema } }, async (req) => {
         const { reports } = req.body as { reports: Array<{ rpi: string, encryptedMetadata: string }> };
 
@@ -29,7 +30,13 @@ export function registerRoutes(server: FastifyInstance) {
         return { success: true };
     });
 
-    server.get('/v1/download', async (req, reply) => {
+    const DownloadQuerySchema = Type.Object({
+        since: Type.Optional(Type.String({ pattern: '^[0-9]+$' })),
+        cursor: Type.Optional(Type.String()),
+        format: Type.Optional(Type.String())
+    });
+
+    server.get('/v1/download', { schema: { querystring: DownloadQuerySchema } }, async (req, reply) => {
         const { since = '0', cursor, format = 'bin' } = req.query as { since?: string; cursor?: string; format?: string };
         const query: any = { createdAt: { $gte: new Date(parseInt(since, 10)) } };
         if (cursor) query._id = { $gt: cursor };

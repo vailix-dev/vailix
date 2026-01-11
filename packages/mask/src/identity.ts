@@ -77,4 +77,14 @@ export class IdentityManager {
         if (!this.masterKey) throw new Error('Not initialized');
         return this.masterKey;
     }
+
+    /**
+     * Get anonymous display name derived from current RPI.
+     * Used for showing user's identity in UI without revealing master key.
+     * Format: "User-abc12" (RPI prefix)
+     */
+    getDisplayName(): string {
+        const rpi = this.getCurrentRPI();
+        return `User-${rpi.substring(0, 5)}`;
+    }
 }

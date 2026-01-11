@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
-import { lt, inArray } from 'drizzle-orm';
+import { lt, gt, inArray } from 'drizzle-orm';
 import { randomUUID } from 'react-native-quick-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { VailixDB } from './types';
@@ -97,5 +97,14 @@ export class StorageService {
         }
 
         return results;
+    }
+
+    async getRecentPairs(withinHours: number = 24): Promise<ScannedEvent[]> {
+        const cutoff = Date.now() - (withinHours * 60 * 60 * 1000);
+        const recent = await this.db.select()
+            .from(scannedEvents)
+            .where(gt(scannedEvents.timestamp, cutoff))
+            .orderBy(scannedEvents.timestamp);
+        return recent;
     }
 }

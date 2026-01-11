@@ -45,12 +45,21 @@ export class MatcherService extends EventEmitter {
                 // Process matches
                 for (const s of matchingScans) {
                     const serverKey = infectedMap.get(s.rpi)!;
-                    const decryptedMetadata = this._decrypt(serverKey.metadata, s.metadataKey);
 
+                    // PRIVACY: Store ENCRYPTED metadata for on-demand decryption
+                    // Never persist decrypted data to storage
+                    await AsyncStorage.setItem(`vailix_match_cache_${s.rpi}`, JSON.stringify({
+                        encryptedMetadata: serverKey.metadata,  // Still encrypted from server
+                        metadataKey: s.metadataKey,            // Decryption key
+                        timestamp: s.timestamp,
+                        reportedAt: serverKey.reportedAt
+                    }));
+
+                    // Return match with empty metadata (will be decrypted on-demand)
                     allMatches.push({
                         rpi: s.rpi,
                         timestamp: s.timestamp,
-                        metadata: decryptedMetadata,
+                        metadata: undefined,  // Not decrypted yet!
                         reportedAt: serverKey.reportedAt,
                     });
                 }
@@ -170,6 +179,46 @@ export class MatcherService extends EventEmitter {
         } catch (e) {
             console.warn('Failed to decrypt metadata', e);
             return undefined;
+        }
+    }
+
+    /**
+     * Retrieve a specific match by RPI with on-demand decryption.
+     * Used when app needs to display exposure details to user.
+     * 
+     * PRIVACY: Decrypted metadata exists ONLY in-memory (return value).
+     * Never persisted to storage.
+     * 
+     * @param rpi - The RPI (match ID) to retrieve
+     * @returns Match with decrypted metadata, or null if not found
+     */
+    async getMatchById(rpi: string): Promise<Match | null> {
+        try {
+            // Retrieve encrypted match from cache
+            const cachedData = await AsyncStorage.getItem(`vailix_match_cache_${rpi}`);
+            if (!cachedData) {
+                console.warn(`Match ${rpi} not found in cache`);
+                return null;
+            }
+
+            const cached = JSON.parse(cachedData);
+
+            // Decrypt metadata ON-DEMAND (result only in memory)
+            const decryptedMetadata = this._decrypt(
+                cached.encryptedMetadata,
+                cached.metadataKey
+            );
+
+            // Return ephemeral result (lives only in caller's memory)
+            return {
+                rpi: rpi,
+                timestamp: cached.timestamp,
+                metadata: decryptedMetadata,
+                reportedAt: cached.reportedAt
+            };
+        } catch (error) {
+            console.error('Failed to get match by ID:', error);
+            return null;
         }
     }
 }

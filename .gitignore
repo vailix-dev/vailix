@@ -5,9 +5,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Packages (not ready for commit)
-#packages/
-
 # Environment
 .env
 .env.local
@@ -46,3 +43,8 @@ visto_app_plan.md
 packages/drop/ANALYSIS_REPORT.md
 packages/mask/ANALYSIS_REPORT.md
 packages/mask/BLE_IMPLEMENTATION_PLAN.md
+packages/drop/src/attest-firebase.ts
+packages/drop/src/firebase-admin.ts
+visto_analysis_summary.md
+visto_ui_spec_for_ai.md
+visto_ui_wireframes.md

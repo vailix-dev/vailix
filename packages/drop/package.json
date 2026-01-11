@@ -29,20 +29,28 @@
         "lint": "eslint src/"
     },
     "dependencies": {
-        "fastify": "^5.6.2",
-        "fastify-plugin": "^4.5.0",
-        "@fastify/helmet": "^13.0.0",
-        "@fastify/rate-limit": "^10.0.0",
         "@fastify/compress": "^8.0.0",
         "@fastify/cors": "^10.0.0",
+        "@fastify/helmet": "^13.0.0",
+        "@fastify/rate-limit": "^10.0.0",
         "@sinclair/typebox": "^0.32.0",
-        "mongoose": "^9.0.0",
-        "dotenv": "^17.2.0"
+        "dotenv": "^17.2.0",
+        "fastify": "^5.6.2",
+        "fastify-plugin": "^4.5.0",
+        "mongoose": "^9.0.0"
+    },
+    "peerDependencies": {
+        "firebase-admin": "^13.6.0"
+    },
+    "peerDependenciesMeta": {
+        "firebase-admin": {
+            "optional": true
+        }
     },
     "devDependencies": {
-        "typescript": "^5.7.0",
-        "tsx": "^4.21.0",
+        "@types/node": "^22.0.0",
         "tsup": "^8.5.0",
-        "@types/node": "^22.0.0"
+        "tsx": "^4.21.0",
+        "typescript": "^5.7.0"
     }
 }

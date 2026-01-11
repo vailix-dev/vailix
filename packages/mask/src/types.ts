@@ -2,7 +2,7 @@ import type { ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 
 // Optional metadata apps can attach when reporting
 export interface ReportMetadata {
-    [key: string]: string | number | boolean | undefined;
+    [key: string]: string | number | boolean | (string | number | boolean)[] | undefined;
 }
 
 // Match result with optional reporter metadata

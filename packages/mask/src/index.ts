@@ -5,14 +5,14 @@ import { MatcherService } from './matcher';
 import { BleService } from './ble';
 import { formatQR, parseQR } from './transport';
 import { initializeDatabase } from './db';
-import type { 
-    Match, 
-    MatchHandler, 
-    ReportMetadata, 
-    KeyStorage, 
+import type {
+    Match,
+    MatchHandler,
+    ReportMetadata,
+    KeyStorage,
     VailixConfig,
     NearbyUser,
-    PairResult 
+    PairResult
 } from './types';
 
 export class VailixSDK {
@@ -87,13 +87,13 @@ export class VailixSDK {
         await storage.cleanupOldScans();
 
         return new VailixSDK(
-            identity, 
-            storage, 
-            matcher, 
+            identity,
+            storage,
+            matcher,
             ble,
-            config.reportUrl, 
-            config.appSecret, 
-            config.reportDays ?? 14, 
+            config.reportUrl,
+            config.appSecret,
+            config.reportDays ?? 14,
             rpiDuration
         );
     }
@@ -205,6 +205,27 @@ export class VailixSDK {
         return this.ble.unpairUser(userId);
     }
 
+    /**
+     * Get list of recent pairings from storage (for history/recap features).
+     * Returns pairs from the last N hours (default: 24h).
+     * 
+     * @param withinHours - Look back window in hours (default: 24)
+     * @returns Array of NearbyUser objects representing recent pairs
+     */
+    async getRecentPairs(withinHours: number = 24): Promise<NearbyUser[]> {
+        const recentScans = await this.storage.getRecentPairs(withinHours);
+
+        // Map ScannedEvent to NearbyUser format for UI compatibility
+        return recentScans.map(scan => ({
+            id: scan.rpi, // Use RPI as ID for history items
+            displayName: `User-${scan.rpi.substring(0, 5)}`, // Generate display name from RPI
+            rssi: -50, // Fixed value for history (not actively scanned)
+            discoveredAt: scan.timestamp,
+            paired: true,
+            hasIncomingRequest: false,
+        }));
+    }
+
     // ========================================================================
     // Reporting Methods
     // ========================================================================
@@ -214,13 +235,18 @@ export class VailixSDK {
      * 
      * @param attestToken - Optional attestation token (e.g., Firebase App Check)
      * @param metadata - App-specific data (e.g., STD type, test date). If null, a generic positive is reported.
+     * @param overrideReportDays - Optional: Override reportDays for this specific report
+     *                             (e.g., for apps with per-condition exposure windows)
      */
     async report(
         attestToken?: string,
-        metadata?: ReportMetadata
+        metadata?: ReportMetadata,
+        overrideReportDays?: number
     ): Promise<boolean> {
         try {
-            const keys = this.identity.getHistory(this.reportDays);
+            // Use override if provided, else fall back to global config
+            const daysToReport = overrideReportDays ?? this.reportDays;
+            const keys = this.identity.getHistory(daysToReport);
 
             // Encrypt metadata individually for each key in history
             const reports = keys.map(rpi => ({
@@ -305,16 +331,44 @@ export class VailixSDK {
     offError(handler: (error: Error) => void): void {
         this.matcher.off('error', handler);
     }
+
+    // ========================================================================
+    // Match Retrieval Methods (for on-demand decryption)
+    // ========================================================================
+
+    /**
+     * Get a specific match by ID with decrypted metadata.
+     * Used for on-demand decryption when user views exposure details.
+     * 
+     * @param matchId - RPI of the match to retrieve
+     * @returns Match with decrypted metadata, or null if not found
+     * 
+     * @example
+     * // App calls this when user taps on notification
+     * const match = await sdk.getMatchById('abc123');
+     * console.log(match.metadata.conditions); // ["HIV", "Syphilis"]
+     */
+    async getMatchById(matchId: string): Promise<Match | null> {
+        return this.matcher.getMatchById(matchId);
+    }
+
+    /**
+     * Get own display name (emoji + number derived from current RPI).
+     * Used for showing user's anonymous identity in UI.
+     */
+    getOwnDisplayName(): string {
+        return this.identity.getDisplayName();
+    }
 }
 
 // Re-exports
 export { formatQR, parseQR };
-export type { 
-    Match, 
-    MatchHandler, 
-    ReportMetadata, 
-    KeyStorage, 
+export type {
+    Match,
+    MatchHandler,
+    ReportMetadata,
+    KeyStorage,
     VailixConfig,
     NearbyUser,
-    PairResult 
+    PairResult
 };

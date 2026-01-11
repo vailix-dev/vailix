@@ -6,6 +6,9 @@ Backend server for Vailix proximity tracing. Stores reported keys and serves the
 
 ```bash
 npm install @vailix/drop
+
+# Optional: For Firebase Attestation
+npm install firebase-admin
 ```
 
 ## Quick Start
@@ -48,22 +51,50 @@ await app.listen({ port: 3000 });
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `database` | string | required | MongoDB connection string |
-| `appSecret` | string | required | Shared secret (must match SDK) |
+| `mongoUri` | string | required | MongoDB connection string |
+| `secret` | string | required | Shared secret (must match SDK) |
+| `retentionDays` | number | 14 | Key retention period (auto-delete after N days) |
 | `rateLimit.max` | number | 300 | Max requests per window |
 | `rateLimit.windowMs` | number | 60000 | Rate limit window (ms) |
 
 ### Environment Variables
 
+**Standalone Mode:**
 ```env
-DATABASE_URL=mongodb://localhost:27017/vailix
+MONGODB_URI=mongodb://localhost:27017/vailix
+APP_SECRET=your-secret-key
 PORT=3000
 HOST=0.0.0.0
-VAILIX_APP_SECRET=your-secret-key
-RATE_LIMIT_MAX=300
-RATE_LIMIT_WINDOW_MS=60000
-FIREBASE_PROJECT_ID=your-project-id  # Optional
+VAILIX_RETENTION_DAYS=365  # Optional: Key retention in days (default: 14)
+ATTEST_PROVIDER=firebase   # Optional: Enable Firebase Attestation
+FIREBASE_PROJECT_ID=...    # Required if ATTEST_PROVIDER=firebase
+GOOGLE_APPLICATION_CREDENTIALS=... # Required if ATTEST_PROVIDER=firebase
 ```
+
+**Plugin Mode (configure via code):**
+```typescript
+app.register(vailixPlugin, {
+    mongoUri: process.env.MONGODB_URI,
+    secret: process.env.APP_SECRET,
+    retentionDays: 365  // Configure here instead of env var
+});
+```
+
+### Retention Policy
+
+Keys are automatically deleted after `retentionDays` via MongoDB TTL index.
+
+**Important**: Set `retentionDays` to match your app's longest exposure window.
+
+**Examples**:
+- STD tracing with 180-day Syphilis window: `retentionDays: 180`
+- General contact tracing (14 days): `retentionDays: 14` (default)
+- Apps with HPV (365 days): `retentionDays: 365`
+
+## Health Checks
+
+- **Standalone Mode**: A `/health` endpoint is automatically registered.
+- **Plugin Mode**: The plugin does **NOT** register a `/health` endpoint. You must register your own health check route in your parent application if needed. The plugin is configured to bypass authentication for `/health` to support this.
 
 ## Deployment Security Checklist (MANDATORY)
 
@@ -146,7 +177,8 @@ Prevents abuse via configurable rate limits per IP.
 Optional Firebase App Check integration:
 
 ```typescript
-// Server verifies attestation automatically if FIREBASE_PROJECT_ID is set
+```typescript
+// Server verifies attestation only if ATTEST_PROVIDER=firebase is set
 ```
 
 When enabled, requests without valid attestation tokens are rejected.
