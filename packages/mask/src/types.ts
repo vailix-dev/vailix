@@ -52,6 +52,8 @@ export interface NearbyUser {
     paired: boolean;
     /** true if they sent us data but we haven't accepted yet (explicit mode) */
     hasIncomingRequest: boolean;
+    /** Timestamp when pairing occurred (optional, populated after successful pair) */
+    pairedAt?: number;
 }
 
 /** Result of a pairing attempt */
@@ -93,4 +95,6 @@ export interface VailixConfig {
     proximityThreshold?: number;
     /** If true, automatically pair when receiving a write (default: true) */
     autoAcceptIncomingPairs?: boolean;
+    /** Custom BLE Service UUID (default: a1b2c3d4-e5f6-7890-abcd-ef1234567890) */
+    serviceUUID?: string;
 }

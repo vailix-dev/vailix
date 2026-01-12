@@ -19,56 +19,16 @@ const META_IN_CHAR_UUID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567894';  // Others wri
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 15000;
 const DEFAULT_PROXIMITY_THRESHOLD = -70;
 
-// Display name generation
-const EMOJIS = ['🐼', '🦊', '🐨', '🦁', '🐯', '🐸', '🦋', '🐙', '🦄', '🐳'];
-
-// ============================================================================
-// Internal Types
-// ============================================================================
-
-export interface BleServiceConfig {
-    discoveryTimeoutMs?: number;
-    proximityThreshold?: number;
-    autoAccept?: boolean;
-}
-
-/** Internal type with RPI details (not exported to app) */
-interface InternalNearbyUser extends NearbyUser {
-    rpiPrefix: string;       // Truncated RPI from advertisement (8 bytes hex)
-    fullRpi?: string;        // Complete RPI (populated after GATT read)
-    metadataKey?: string;    // Metadata key (populated after GATT read)
-}
-
-/** Pending incoming pair request (explicit consent mode) */
-interface PendingPairRequest {
-    fullRpi: string;
-    metadataKey: string;
-    receivedAt: number;
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Generate deterministic display name from truncated RPI.
- * Ensures all scanners see the same name for the same user.
- */
-function generateDisplayName(rpiPrefix: string): string {
-    const hash = rpiPrefix.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const emoji = EMOJIS[hash % EMOJIS.length];
-    const number = hash % 100;
-    return `${emoji} ${number}`;
-}
+import { generateDisplayName } from './utils';
 
 /**
  * Extract RPI prefix from advertisement manufacturer data or service data.
  */
-function extractRpiPrefix(device: Device): string | null {
+function extractRpiPrefix(device: Device, serviceUUID: string): string | null {
     // Try to extract from service data first
     const serviceData = device.serviceData;
-    if (serviceData && serviceData[VAILIX_SERVICE_UUID]) {
-        const data = serviceData[VAILIX_SERVICE_UUID];
+    if (serviceData && serviceData[serviceUUID]) {
+        const data = serviceData[serviceUUID];
         if (data && data.length >= 16) {
             // First 16 chars = 8 bytes hex
             return data.substring(0, 16);
@@ -93,21 +53,23 @@ export class BleService {
     private isScanning: boolean = false;
     private nearbyUsers: Map<string, InternalNearbyUser> = new Map();
     private pendingRequests: Map<string, PendingPairRequest> = new Map();
-    
+
     // Configuration
     private discoveryTimeoutMs: number;
     private proximityThreshold: number;
     private autoAccept: boolean;
-    
+    private serviceUUID: string;
+
+
     // State
     private cleanupInterval?: ReturnType<typeof setInterval>;
     private scanSubscription?: { remove: () => void };
     private onNearbyUpdated?: (users: NearbyUser[]) => void;
-    
+
     // Identity (set when discovery starts)
     private myRpi?: string;
     private myMetadataKey?: string;
-    
+
     // Storage reference for persisting pairs
     private storage?: StorageService;
 
@@ -116,6 +78,7 @@ export class BleService {
         this.discoveryTimeoutMs = config.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.proximityThreshold = config.proximityThreshold ?? DEFAULT_PROXIMITY_THRESHOLD;
         this.autoAccept = config.autoAccept ?? true;
+        this.serviceUUID = config.serviceUUID ?? VAILIX_SERVICE_UUID;
     }
 
     /**
@@ -185,14 +148,14 @@ export class BleService {
      */
     async stopDiscovery(): Promise<void> {
         this.isScanning = false;
-        
+
         if (this.scanSubscription) {
             this.scanSubscription.remove();
             this.scanSubscription = undefined;
         }
-        
+
         this.manager.stopDeviceScan();
-        
+
         if (this.cleanupInterval) {
             clearInterval(this.cleanupInterval);
             this.cleanupInterval = undefined;
@@ -251,9 +214,9 @@ export class BleService {
                     return { success: true, partnerRpi: internalUser.fullRpi };
                 }
             }
-            return { 
-                success: false, 
-                error: error instanceof Error ? error.message : 'Unknown error' 
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
             };
         }
     }
@@ -287,7 +250,7 @@ export class BleService {
 
     private async startScanning(): Promise<void> {
         this.manager.startDeviceScan(
-            [VAILIX_SERVICE_UUID],
+            [this.serviceUUID],
             { allowDuplicates: true },
             (error: BleError | null, device: Device | null) => {
                 if (error) {
@@ -302,11 +265,11 @@ export class BleService {
     }
 
     private handleDiscoveredDevice(device: Device): void {
-        const rpiPrefix = extractRpiPrefix(device);
+        const rpiPrefix = extractRpiPrefix(device, this.serviceUUID);
         if (!rpiPrefix) return;
 
         const existingUser = this.nearbyUsers.get(device.id);
-        
+
         if (existingUser) {
             // Update existing user
             existingUser.rssi = device.rssi ?? -100;
@@ -365,14 +328,14 @@ export class BleService {
 
             // Read partner's RPI
             const rpiChar = await connectedDevice.readCharacteristicForService(
-                VAILIX_SERVICE_UUID,
+                this.serviceUUID,
                 RPI_OUT_CHAR_UUID
             );
             const partnerRpi = rpiChar.value ? Buffer.from(rpiChar.value, 'base64').toString('hex') : null;
 
             // Read partner's metadata key
             const metaChar = await connectedDevice.readCharacteristicForService(
-                VAILIX_SERVICE_UUID,
+                this.serviceUUID,
                 META_OUT_CHAR_UUID
             );
             const partnerMetadataKey = metaChar.value ? Buffer.from(metaChar.value, 'base64').toString('hex') : null;
@@ -384,7 +347,7 @@ export class BleService {
             // Write our RPI to partner
             const myRpiBase64 = Buffer.from(this.myRpi, 'hex').toString('base64');
             await connectedDevice.writeCharacteristicWithResponseForService(
-                VAILIX_SERVICE_UUID,
+                this.serviceUUID,
                 RPI_IN_CHAR_UUID,
                 myRpiBase64
             );
@@ -392,7 +355,7 @@ export class BleService {
             // Write our metadata key to partner
             const myMetaBase64 = Buffer.from(this.myMetadataKey, 'hex').toString('base64');
             await connectedDevice.writeCharacteristicWithResponseForService(
-                VAILIX_SERVICE_UUID,
+                this.serviceUUID,
                 META_IN_CHAR_UUID,
                 myMetaBase64
             );
@@ -410,12 +373,13 @@ export class BleService {
             user.metadataKey = partnerMetadataKey;
             user.paired = true;
             user.hasIncomingRequest = false;
+            user.pairedAt = Date.now();
             this.emitUpdate();
 
-            return { 
-                success: true, 
-                partnerRpi, 
-                partnerMetadataKey 
+            return {
+                success: true,
+                partnerRpi,
+                partnerMetadataKey
             };
 
         } catch (error) {
@@ -452,13 +416,14 @@ export class BleService {
         user.metadataKey = request.metadataKey;
         user.paired = true;
         user.hasIncomingRequest = false;
+        user.pairedAt = Date.now();
         this.pendingRequests.delete(userId);
         this.emitUpdate();
 
-        return { 
-            success: true, 
-            partnerRpi: request.fullRpi, 
-            partnerMetadataKey: request.metadataKey 
+        return {
+            success: true,
+            partnerRpi: request.fullRpi,
+            partnerMetadataKey: request.metadataKey
         };
     }
 
@@ -468,7 +433,7 @@ export class BleService {
      */
     async handleIncomingPair(deviceId: string, rpi: string, metadataKey: string): Promise<void> {
         let user = this.nearbyUsers.get(deviceId);
-        
+
         // Create user entry if not exists
         if (!user) {
             user = {
@@ -495,6 +460,7 @@ export class BleService {
             user.metadataKey = metadataKey;
             user.paired = true;
             user.hasIncomingRequest = false;
+            user.pairedAt = Date.now();
         } else {
             // Explicit consent mode: hold in memory
             this.pendingRequests.set(deviceId, {

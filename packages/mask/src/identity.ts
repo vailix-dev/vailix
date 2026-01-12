@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from 'react-native-quick-crypto';
 import * as SecureStore from 'expo-secure-store';
 import type { KeyStorage } from './types';
+import { generateDisplayName } from './utils';
 
 const MASTER_KEY_STORE = 'vailix_master_key';
 const DEFAULT_EPOCH_MS = 15 * 60 * 1000; // 15 minutes default
@@ -81,10 +82,10 @@ export class IdentityManager {
     /**
      * Get anonymous display name derived from current RPI.
      * Used for showing user's identity in UI without revealing master key.
-     * Format: "User-abc12" (RPI prefix)
+     * Format: "Emoji Number" (e.g. "🐼 42")
      */
     getDisplayName(): string {
         const rpi = this.getCurrentRPI();
-        return `User-${rpi.substring(0, 5)}`;
+        return generateDisplayName(rpi.substring(0, 16));
     }
 }

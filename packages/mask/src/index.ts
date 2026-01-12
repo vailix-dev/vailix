@@ -80,6 +80,7 @@ export class VailixSDK {
             discoveryTimeoutMs: config.bleDiscoveryTimeoutMs,
             proximityThreshold: config.proximityThreshold,
             autoAccept: config.autoAcceptIncomingPairs,
+            serviceUUID: config.serviceUUID,
         });
         ble.setStorage(storage);
 
