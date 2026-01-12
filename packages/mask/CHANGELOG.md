@@ -1,5 +1,11 @@
 # @vailix/mask
 
+## 0.2.1
+
+### Patch Changes
+
+- b3be912: docs: fix repository URLs and update README documentation
+
 ## 0.2.0
 
 ### Minor Changes
