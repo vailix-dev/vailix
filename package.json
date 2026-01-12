@@ -3,7 +3,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vailix/core.git"
+    "url": "git+https://github.com/vailix-dev/vailix.git"
   },
   "author": "Vailix Open Source",
   "license": "MIT",

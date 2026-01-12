@@ -17,8 +17,8 @@ This project follows the [Contributor Covenant](https://www.contributor-covenant
 
 ```bash
 # Clone the repository
-git clone https://github.com/vailix/core.git
-cd core
+git clone https://github.com/vailix-dev/vailix.git
+cd vailix
 
 # Install dependencies
 pnpm install

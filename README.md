@@ -68,9 +68,13 @@ const sdk = await VailixSDK.create({
 ### 3. Pair Users
 
 ```typescript
-// NFC (recommended)
-if (await VailixSDK.isNfcSupported()) {
-  await sdk.pairViaNfc();
+// BLE discovery
+if (await VailixSDK.isBleSupported()) {
+  await sdk.startDiscovery();
+  // Users appear in nearby list, tap to pair
+  sdk.onNearbyUsersChanged((users) => {
+    console.log('Nearby:', users);
+  });
 } else {
   // QR fallback: both users scan each other
   const qr = sdk.getQRCode();
@@ -131,7 +135,7 @@ VailixSDK.create({
 
 > [!IMPORTANT]
 > **If you need data recovery across devices/reinstalls, you must implement `keyStorage`.**
-> See [SDK Documentation](./packages/mask/README.md#data-recovery) for detailed recovery scenarios.
+> See [SDK Documentation](./packages/mask/README.md) for more details.
 
 ## Documentation
 
@@ -158,6 +162,7 @@ pnpm add @vailix/drop
 
 | @vailix/mask | @vailix/drop | Notes |
 |------------|------------|-------|
+| v0.2.x     | v0.1.x     | Current |
 | v0.1.x     | v0.1.x     | Initial Release |
 
 ### Peer Dependencies

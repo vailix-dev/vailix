@@ -12,13 +12,13 @@
         "server",
         "api"
     ],
-    "homepage": "https://github.com/vailix/core/tree/main/packages/drop#readme",
+    "homepage": "https://github.com/vailix-dev/vailix/tree/main/packages/drop#readme",
     "bugs": {
-        "url": "https://github.com/vailix/core/issues"
+        "url": "https://github.com/vailix-dev/vailix/issues"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/vailix/core.git",
+        "url": "git+https://github.com/vailix-dev/vailix.git",
         "directory": "packages/drop"
     },
     "license": "MIT",

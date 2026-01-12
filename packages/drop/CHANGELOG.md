@@ -4,4 +4,4 @@
 
 ### Patch Changes
 
-- Initial publish publish
+- Initial public publish

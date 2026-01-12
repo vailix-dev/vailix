@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.2.x   | :white_check_mark: |
 | 0.1.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
@@ -50,4 +51,4 @@ Deployments MUST:
 - [ ] Enable MongoDB authentication
 - [ ] Use strong `APP_SECRET` values (min 32 characters)
 
-See `core_framework_plan.md` for the complete security checklist.
+See the [@vailix/drop README](./packages/drop/README.md#deployment-security-checklist-mandatory) for the complete deployment security checklist.

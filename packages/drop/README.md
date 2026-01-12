@@ -16,27 +16,28 @@ npm install firebase-admin
 ### Standalone Server
 
 ```typescript
-import { createVailixServer } from '@vailix/drop';
+import { startStandalone } from '@vailix/drop';
 
-const server = await createVailixServer({
-  database: process.env.DATABASE_URL!,
-  appSecret: process.env.VAILIX_APP_SECRET!,
-});
+// Requires MONGODB_URI and APP_SECRET environment variables
+await startStandalone();
+```
 
-await server.listen({ port: 3000 });
+Or configure via environment variables and run directly:
+```bash
+MONGODB_URI=mongodb://localhost:27017/vailix APP_SECRET=your-secret node -e "import('@vailix/drop').then(m => m.startStandalone())"
 ```
 
 ### As Fastify Plugin
 
 ```typescript
 import Fastify from 'fastify';
-import { vailixPlugin } from '@vailix/drop';
+import vailixPlugin from '@vailix/drop';
 
 const app = Fastify();
 
 await app.register(vailixPlugin, {
-  database: process.env.DATABASE_URL!,
-  appSecret: process.env.VAILIX_APP_SECRET!,
+  mongoUri: process.env.MONGODB_URI!,
+  secret: process.env.APP_SECRET!,
   prefix: '/vailix', // Optional: mount under prefix
 });
 
@@ -73,6 +74,8 @@ GOOGLE_APPLICATION_CREDENTIALS=... # Required if ATTEST_PROVIDER=firebase
 
 **Plugin Mode (configure via code):**
 ```typescript
+import vailixPlugin from '@vailix/drop';
+
 app.register(vailixPlugin, {
     mongoUri: process.env.MONGODB_URI,
     secret: process.env.APP_SECRET,
@@ -177,7 +180,6 @@ Prevents abuse via configurable rate limits per IP.
 Optional Firebase App Check integration:
 
 ```typescript
-```typescript
 // Server verifies attestation only if ATTEST_PROVIDER=firebase is set
 ```
 
@@ -208,8 +210,8 @@ CMD ["node", "dist/index.js"]
 
 ```bash
 docker run -d \
-  -e DATABASE_URL=mongodb://mongo:27017/vailix \
-  -e VAILIX_APP_SECRET=your-secret \
+  -e MONGODB_URI=mongodb://mongo:27017/vailix \
+  -e APP_SECRET=your-secret \
   -p 3000:3000 \
   your-image
 ```
@@ -224,11 +226,11 @@ docker run -d \
   rpi: Buffer,              // 16 bytes binary
   encryptedMetadata: string,
   reportedAt: Date,
-  expiresAt: Date,          // Auto-delete after 14 days (TTL index)
+  expiresAt: Date,          // TTL index, configurable via retentionDays
 }
 ```
 
-Reports are automatically deleted after 14 days via MongoDB TTL index.
+Reports are automatically deleted after `retentionDays` (default: 14) via MongoDB TTL index.
 
 ## License
 

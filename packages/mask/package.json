@@ -13,13 +13,13 @@
         "contact-tracing",
         "sdk"
     ],
-    "homepage": "https://github.com/vailix/core/tree/main/packages/mask#readme",
+    "homepage": "https://github.com/vailix-dev/vailix/tree/main/packages/mask#readme",
     "bugs": {
-        "url": "https://github.com/vailix/core/issues"
+        "url": "https://github.com/vailix-dev/vailix/issues"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/vailix/core.git",
+        "url": "git+https://github.com/vailix-dev/vailix.git",
         "directory": "packages/mask"
     },
     "license": "MIT",

@@ -4,6 +4,9 @@
   "description": "Privacy-preserving proximity tracing ecosystem. See @vailix/mask (mobile SDK) and @vailix/drop (backend).",
   "author": "Gil Eyni <gil@vailix.dev>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "vailix",
     "privacy",
