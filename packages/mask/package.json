@@ -2,6 +2,21 @@
     "name": "@vailix/mask",
     "version": "0.1.0",
     "description": "Privacy-preserving proximity tracing SDK for React Native & Expo",
+    "author": "Gil Eyni",
+    "keywords": [
+        "react-native",
+        "expo",
+        "privacy",
+        "proximity-tracing",
+        "bluetooth",
+        "ble",
+        "contact-tracing",
+        "sdk"
+    ],
+    "homepage": "https://github.com/vailix/core/tree/main/packages/mask#readme",
+    "bugs": {
+        "url": "https://github.com/vailix/core/issues"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/vailix/core.git",
