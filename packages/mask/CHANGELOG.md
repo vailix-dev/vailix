@@ -1,5 +1,11 @@
 # @vailix/mask
 
+## 0.2.2
+
+### Patch Changes
+
+- 4b6a9d5: fix: ensure database is closed before deletion on key mismatch and add missing internal types
+
 ## 0.2.1
 
 ### Patch Changes
