@@ -120,5 +120,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
 // Re-export types and utilities for library consumers
 export { registerRoutes } from './routes';
-export { KeyModel } from './db';
+export { createKeyModel } from './db';
 export type { AttestVerifier } from './attest';

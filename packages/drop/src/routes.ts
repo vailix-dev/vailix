@@ -4,9 +4,7 @@ import type { FastifyInstance } from 'fastify';
 const ReportSchema = Type.Object({
     reports: Type.Array(Type.Object({
         rpi: Type.String({ minLength: 32, maxLength: 32, pattern: '^[a-f0-9]{32}$' }),
-        encryptedMetadata: Type.String({ maxLength: 10240 }) // 10K
-
-B max, defense-in -depth
+        encryptedMetadata: Type.String({ maxLength: 10240 }) // 10KB max, defense-in-depth
     }), { maxItems: 1500 })
 });
 
@@ -59,7 +57,7 @@ export function registerRoutes(server: FastifyInstance, KeyModel: any) {
 
         // JSON fallback (debug)
         return {
-            keys: keys.map((k) => ({
+            keys: keys.map((k: any) => ({
                 rpi: Buffer.from((k.rpi as any).buffer || k.rpi).toString('hex'), // Convert binary back to hex for JSON
                 metadata: k.metadata,
                 reportedAt: k.createdAt.getTime(),
