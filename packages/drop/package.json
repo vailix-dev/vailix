@@ -1,6 +1,6 @@
 {
     "name": "@vailix/drop",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Secure backend for Vailix proximity tracing",
     "author": "Gil Eyni",
     "keywords": [
