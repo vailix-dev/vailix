@@ -38,14 +38,11 @@ npm-debug.log*
 .pnpm-store/
 
 # Internal docs
+PUBLISHING.md
 core_framework_plan.md
 security_model.md
-#visto_app_plan.md
 packages/drop/ANALYSIS_REPORT.md
-packages/mask/ANALYSIS_REPORT.md
-packages/mask/BLE_IMPLEMENTATION_PLAN.md
 packages/drop/src/attest-firebase.ts
 packages/drop/src/firebase-admin.ts
-visto_analysis_summary.md
-#visto_ui_spec_for_ai.md
-#visto_ui_wireframes.md
+packages/mask/ANALYSIS_REPORT.md
+packages/mask/BLE_IMPLEMENTATION_PLAN.md

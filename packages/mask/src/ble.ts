@@ -21,6 +21,50 @@ const DEFAULT_PROXIMITY_THRESHOLD = -70;
 
 import { generateDisplayName } from './utils';
 
+// ============================================================================
+// Internal Types (not exported - implementation details)
+// ============================================================================
+
+/**
+ * Internal representation of a nearby user with additional fields for BLE management.
+ * The public NearbyUser type hides these implementation details.
+ */
+interface InternalNearbyUser {
+    id: string;
+    displayName: string;
+    rssi: number;
+    discoveredAt: number;
+    paired: boolean;
+    hasIncomingRequest: boolean;
+    pairedAt?: number;
+    /** First 8 bytes (16 hex chars) of RPI from advertisement */
+    rpiPrefix: string;
+    /** Full RPI (received via GATT exchange) */
+    fullRpi?: string;
+    /** Metadata key (received via GATT exchange) */
+    metadataKey?: string;
+}
+
+/**
+ * Pending incoming pair request (explicit consent mode).
+ * Holds data in memory until user accepts.
+ */
+interface PendingPairRequest {
+    fullRpi: string;
+    metadataKey: string;
+    receivedAt: number;
+}
+
+/**
+ * Configuration options for BleService constructor.
+ */
+interface BleServiceConfig {
+    discoveryTimeoutMs?: number;
+    proximityThreshold?: number;
+    autoAccept?: boolean;
+    serviceUUID?: string;
+}
+
 /**
  * Extract RPI prefix from advertisement manufacturer data or service data.
  */
