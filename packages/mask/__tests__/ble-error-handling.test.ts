@@ -22,6 +22,8 @@ const State = {
     PoweredOff: 'PoweredOff',
     Unauthorized: 'Unauthorized',
     Unsupported: 'Unsupported',
+    Unknown: 'Unknown',
+    Resetting: 'Resetting',
 };
 
 // Mock BleManager that tracks calls
@@ -71,12 +73,16 @@ class TestBleService extends EventEmitter {
                     clearTimeout(timeout);
                     subscriptionRef?.remove();
                     resolve(true);
-                } else if (state === State.PoweredOff || state === State.Unauthorized) {
+                } else if (state === State.PoweredOff ||
+                    state === State.Unauthorized ||
+                    state === State.Unsupported) {
+                    // Terminal failure states
                     resolved = true;
                     clearTimeout(timeout);
                     subscriptionRef?.remove();
                     resolve(false);
                 }
+                // Unknown/Resetting: transient states, wait for next callback
             };
 
             subscriptionRef = this.manager.onStateChange(handleState, true);
@@ -194,6 +200,42 @@ describe('BleService Error Handling', () => {
 
             const result = await bleService.initialize();
             expect(result).toBe(false);
+        });
+
+        it('should resolve false when BLE state is Unsupported', async () => {
+            mockManager.onStateChange.mockImplementation((callback: Function, immediate: boolean) => {
+                if (immediate) {
+                    Promise.resolve().then(() => callback(State.Unsupported));
+                }
+                return { remove: vi.fn() };
+            });
+
+            const result = await bleService.initialize();
+            expect(result).toBe(false);
+        });
+
+        it('should wait for PoweredOn when state starts as Unknown (Android behavior)', async () => {
+            // Simulate Android: state starts Unknown, then transitions to PoweredOn
+            let callCount = 0;
+            mockManager.onStateChange.mockImplementation((callback: Function, immediate: boolean) => {
+                if (immediate) {
+                    // First call: Unknown (should wait)
+                    Promise.resolve().then(() => {
+                        callback(State.Unknown);
+                        // Then transition to PoweredOn after a delay
+                        setTimeout(() => callback(State.PoweredOn), 100);
+                    });
+                }
+                return { remove: vi.fn() };
+            });
+
+            const initPromise = bleService.initialize();
+
+            // Advance time to allow transition
+            await vi.advanceTimersByTimeAsync(100);
+
+            const result = await initPromise;
+            expect(result).toBe(true);
         });
 
         it('should timeout after 5 seconds and resolve false', async () => {

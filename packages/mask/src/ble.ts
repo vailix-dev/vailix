@@ -135,7 +135,10 @@ export class BleService extends EventEmitter {
     }
 
     /**
-     * Check if BLE is available and enabled
+     * Check if BLE is available and enabled.
+     * 
+     * On Android, state may start as Unknown and transition to PoweredOn.
+     * We wait for a terminal state or timeout.
      */
     async initialize(): Promise<boolean> {
         const INIT_TIMEOUT_MS = 5000;  // 5 second timeout
@@ -147,15 +150,21 @@ export class BleService extends EventEmitter {
             }, INIT_TIMEOUT_MS);
 
             const subscription = this.manager.onStateChange((state: typeof State[keyof typeof State]) => {
+                console.log('BLE State:', state);
+
                 if (state === State.PoweredOn) {
                     clearTimeout(timeout);
                     subscription.remove();
                     resolve(true);
-                } else if (state === State.PoweredOff || state === State.Unauthorized) {
+                } else if (state === State.PoweredOff ||
+                    state === State.Unauthorized ||
+                    state === State.Unsupported) {
+                    // Terminal failure states
                     clearTimeout(timeout);
                     subscription.remove();
                     resolve(false);
                 }
+                // Unknown/Resetting: transient states, wait for next callback
             }, true);
         });
     }
