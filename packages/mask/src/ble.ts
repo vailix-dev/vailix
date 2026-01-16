@@ -1,4 +1,5 @@
 import { BleManager, Device, State, BleError } from 'react-native-ble-plx';
+import { EventEmitter } from 'eventemitter3';
 import type { NearbyUser, PairResult } from './types';
 import type { StorageService } from './storage';
 
@@ -92,7 +93,7 @@ function extractRpiPrefix(device: Device, serviceUUID: string): string | null {
 // BleService Class
 // ============================================================================
 
-export class BleService {
+export class BleService extends EventEmitter {
     private manager: BleManager;
     private isScanning: boolean = false;
     private nearbyUsers: Map<string, InternalNearbyUser> = new Map();
@@ -118,6 +119,7 @@ export class BleService {
     private storage?: StorageService;
 
     constructor(config: BleServiceConfig = {}) {
+        super();  // Initialize EventEmitter
         this.manager = new BleManager();
         this.discoveryTimeoutMs = config.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.proximityThreshold = config.proximityThreshold ?? DEFAULT_PROXIMITY_THRESHOLD;
@@ -136,12 +138,21 @@ export class BleService {
      * Check if BLE is available and enabled
      */
     async initialize(): Promise<boolean> {
+        const INIT_TIMEOUT_MS = 5000;  // 5 second timeout
+
         return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                subscription.remove();
+                resolve(false);  // Timed out waiting for BLE state
+            }, INIT_TIMEOUT_MS);
+
             const subscription = this.manager.onStateChange((state: typeof State[keyof typeof State]) => {
                 if (state === State.PoweredOn) {
+                    clearTimeout(timeout);
                     subscription.remove();
                     resolve(true);
                 } else if (state === State.PoweredOff || state === State.Unauthorized) {
+                    clearTimeout(timeout);
                     subscription.remove();
                     resolve(false);
                 }
@@ -169,6 +180,12 @@ export class BleService {
      */
     async startDiscovery(myRpi: string, myMetadataKey: string): Promise<void> {
         if (this.isScanning) return;
+
+        // Ensure BLE is powered on before scanning
+        const isReady = await this.initialize();
+        if (!isReady) {
+            throw new Error('Bluetooth is not available or not enabled');
+        }
 
         this.myRpi = myRpi;
         this.myMetadataKey = myMetadataKey;
@@ -299,6 +316,7 @@ export class BleService {
             (error: BleError | null, device: Device | null) => {
                 if (error) {
                     console.warn('BLE scan error:', error);
+                    this.emit('error', error);  // Propagate to listeners
                     return;
                 }
                 if (device) {

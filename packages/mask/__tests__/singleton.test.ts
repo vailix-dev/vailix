@@ -66,6 +66,10 @@ vi.mock('../src/ble', () => {
             onNearbyUsersChanged = vi.fn().mockReturnValue(() => { });
             pairWithUser = vi.fn().mockResolvedValue({ success: true });
             unpairUser = vi.fn().mockResolvedValue(undefined);
+            // EventEmitter methods (BleService now extends EventEmitter)
+            on = vi.fn();
+            off = vi.fn();
+            emit = vi.fn();
         },
     };
 });

@@ -122,6 +122,12 @@ export class VailixSDK {
         });
         ble.setStorage(storage);
 
+        // Forward BLE errors to SDK error stream
+        // Consumers receive via sdk.onError()
+        ble.on('error', (error) => {
+            matcher.emit('error', error);
+        });
+
         // Cleanup old scans on init
         await storage.cleanupOldScans();
 
