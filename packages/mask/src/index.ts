@@ -16,6 +16,10 @@ import type {
 } from './types';
 
 export class VailixSDK {
+    // Singleton instance and initialization promise for thread-safety
+    private static instance: VailixSDK | null = null;
+    private static initPromise: Promise<VailixSDK> | null = null;
+
     public identity: IdentityManager;
     public storage: StorageService;
     public matcher: MatcherService;
@@ -46,11 +50,41 @@ export class VailixSDK {
     }
 
     /**
-     * Create and initialize the VailixSDK.
+     * Create or return the singleton SDK instance.
      * 
-     * @param config - Unified configuration object
+     * Thread-safe: concurrent calls will wait for the first initialization to complete
+     * and return the same instance. Config is only used on first initialization.
+     * 
+     * @param config - Unified configuration object (used only on first call)
      */
     static async create(config: VailixConfig): Promise<VailixSDK> {
+        // Already initialized - return existing instance
+        if (VailixSDK.instance) {
+            return VailixSDK.instance;
+        }
+
+        // Initialization in progress - wait for it (prevents race condition)
+        if (VailixSDK.initPromise) {
+            return VailixSDK.initPromise;
+        }
+
+        // First call - start initialization
+        VailixSDK.initPromise = VailixSDK.doCreate(config);
+
+        try {
+            VailixSDK.instance = await VailixSDK.initPromise;
+            return VailixSDK.instance;
+        } catch (error) {
+            // Clear promise on failure so retry is possible
+            VailixSDK.initPromise = null;
+            throw error;
+        }
+    }
+
+    /**
+     * Internal initialization logic (extracted for singleton pattern).
+     */
+    private static async doCreate(config: VailixConfig): Promise<VailixSDK> {
         // Validate: rescanInterval cannot exceed rpiDuration
         const rpiDuration = config.rpiDurationMs ?? 15 * 60 * 1000; // Default 15 min
         if (config.rescanIntervalMs && config.rescanIntervalMs > rpiDuration) {
@@ -97,6 +131,27 @@ export class VailixSDK {
             config.reportDays ?? 14,
             rpiDuration
         );
+    }
+
+    /**
+     * Destroy the singleton instance and release all resources.
+     * Use for testing or when the app needs to fully reset the SDK.
+     */
+    static async destroy(): Promise<void> {
+        if (VailixSDK.instance) {
+            // Cleanup BLE resources
+            VailixSDK.instance.ble.destroy();
+            // Note: Database connection cleanup is handled by expo-sqlite
+            VailixSDK.instance = null;
+        }
+        VailixSDK.initPromise = null;
+    }
+
+    /**
+     * Check if the SDK has been initialized.
+     */
+    static isInitialized(): boolean {
+        return VailixSDK.instance !== null;
     }
 
     // ========================================================================

@@ -62,6 +62,16 @@ const unsubscribe = sdk.onNearbyUsersChanged((users) => {
 });
 ```
 
+> **Note:** `VailixSDK.create()` returns a singleton instance. Multiple calls return the same instance, and the config is only used on the first call. Use `VailixSDK.destroy()` to reset the SDK if needed.
+
+### Static Methods
+
+| Method | Description |
+|--------|-------------|
+| `VailixSDK.create(config)` | Create or return the singleton SDK instance |
+| `VailixSDK.destroy()` | Release resources and reset the singleton |
+| `VailixSDK.isInitialized()` | Check if the SDK has been initialized |
+
 ## Compatibility
 
 - **Expo**: SDK 52+ (Development Build required, **Expo Go not supported**)
