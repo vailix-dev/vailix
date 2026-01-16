@@ -1,6 +1,6 @@
 {
     "name": "@vailix/mask",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "Privacy-preserving proximity tracing SDK for React Native & Expo",
     "author": "Gil Eyni",
     "keywords": [
