@@ -63,22 +63,26 @@ export class VailixSDK {
             return VailixSDK.instance;
         }
 
-        // Initialization in progress - wait for it (prevents race condition)
+        // Initialization in progress - wait for it
         if (VailixSDK.initPromise) {
             return VailixSDK.initPromise;
         }
 
-        // First call - start initialization
-        VailixSDK.initPromise = VailixSDK.doCreate(config);
+        // CRITICAL: Set promise SYNCHRONOUSLY before any await
+        // This makes the check-and-set atomic within the same microtask
+        VailixSDK.initPromise = (async () => {
+            try {
+                const sdk = await VailixSDK.doCreate(config);
+                VailixSDK.instance = sdk;
+                return sdk;
+            } catch (error) {
+                // Clear promise on failure so retry is possible
+                VailixSDK.initPromise = null;
+                throw error;
+            }
+        })();
 
-        try {
-            VailixSDK.instance = await VailixSDK.initPromise;
-            return VailixSDK.instance;
-        } catch (error) {
-            // Clear promise on failure so retry is possible
-            VailixSDK.initPromise = null;
-            throw error;
-        }
+        return VailixSDK.initPromise;
     }
 
     /**
