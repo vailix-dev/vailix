@@ -1,5 +1,15 @@
 # @vailix/mask
 
+## 0.2.3
+
+### Patch Changes
+
+- c1ca263: fix: prevent race condition in SDK initialization
+  - Implement singleton pattern for `VailixSDK.create()` to prevent concurrent database connections
+  - Ensure database is properly closed before deletion on key mismatch errors
+  - Add missing internal BLE types (`InternalNearbyUser`, `PendingPairRequest`, `BleServiceConfig`)
+  - Add `VailixSDK.destroy()` for cleanup and `VailixSDK.isInitialized()` for status checking
+
 ## 0.2.2
 
 ### Patch Changes
