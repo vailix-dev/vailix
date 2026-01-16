@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from 'react-native-quick-crypto';
+import { createHmac, randomBytes } from 'react-native-quick-crypto';
 import * as SecureStore from 'expo-secure-store';
 import type { KeyStorage } from './types';
 import { generateDisplayName } from './utils';
@@ -30,7 +30,7 @@ export class IdentityManager {
         try {
             let key = await this.keyStorage.getKey();
             if (!key) {
-                key = randomUUID();
+                key = randomBytes(32).toString('hex');
                 await this.keyStorage.setKey(key);
             }
             this.masterKey = key;
