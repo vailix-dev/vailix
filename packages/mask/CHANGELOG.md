@@ -1,5 +1,11 @@
 # @vailix/mask
 
+## 0.2.6
+
+### Patch Changes
+
+- 36836bb: Fix BLE error handling: verify initialization, emit async errors properly, and add connection timeout.
+
 ## 0.2.5
 
 ### Patch Changes
