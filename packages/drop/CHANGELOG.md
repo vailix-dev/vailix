@@ -1,5 +1,11 @@
 # @vailix/drop
 
+## 0.1.4
+
+### Patch Changes
+
+- Increase maxItems in ReportSchema to 20000 to handle larger report batches.
+
 ## 0.1.3
 
 ### Patch Changes

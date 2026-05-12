@@ -5,7 +5,7 @@ const ReportSchema = Type.Object({
     reports: Type.Array(Type.Object({
         rpi: Type.String({ minLength: 32, maxLength: 32, pattern: '^[a-f0-9]{32}$' }),
         encryptedMetadata: Type.String({ maxLength: 10240 }) // 10KB max, defense-in-depth
-    }), { maxItems: 1500 })
+    }), { maxItems: 20000 })
 });
 
 export function registerRoutes(server: FastifyInstance, KeyModel: any) {
